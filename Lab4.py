@@ -11,7 +11,7 @@ from copy import deepcopy
 
 turtle.speed(0)
 
-VERTEX_AMOUNT = 4
+VERTEX_AMOUNT = 11
 VERTEX_RADIUS = 15
 FONT_SIZE = 12
 FONT = ("Arial", FONT_SIZE, "normal")
@@ -58,7 +58,8 @@ def getVertexCoords(vertexAmount, squareSize):
             vertexPerSide += 1
             vertexModulus -= 1
 
-        vertexGap = squareSize / vertexPerSide
+        if (vertexPerSide > 0): vertexGap = squareSize / vertexPerSide
+        else: vertexGap = 0
 
         for j in range(vertexPerSide):
             vertexCoords.append({"x": round(xPos), "y": round(yPos)})
@@ -340,6 +341,43 @@ else:
         if degree == 0: print('\tV{} — ізольована вершина'.format(index + 1))
         elif degree == 1: print('\tV{} — висяча вершина'.format(index + 1))
 
+
+class Button:
+    def __init__(self, x, y, width, height, label, function, fontSize=12, color="white"):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.label = label
+        self.function = function
+        self.fontSize = fontSize
+        self.color = color
+
+    def drawButton(self):
+        up()
+        goto(self.x - self.width / 2, self.y - self.height / 2)
+        down()
+        turtle.fillcolor(self.color)
+        turtle.begin_fill()
+        for i in range(2):
+            turtle.forward(self.width)
+            turtle.left(90)
+            turtle.forward(self.height)
+            turtle.left(90)
+        turtle.end_fill()
+
+        up()
+        goto(self.x, self.y - self.fontSize/2)
+        write(self.label, align="center", font=("Arial", self.fontSize, "normal"))
+
+    def isButtonClicked(self, clickX, clickY):
+        return ((self.x - self.width / 2 <= clickX <= self.x + self.width / 2) and
+                (self.y - self.height / 2 <= clickY <= self.y + self.height / 2))
+
+    def buttonClickHandler(self, x, y):
+        if self.isButtonClicked(x, y):
+            self.function()
+
 def matrixMultiply(A, B):
     rowsA = len(A)
     colsA = len(A[0])
@@ -424,7 +462,7 @@ def matrixReachability(matrix):
     answerMatrix = I
 
     for i in range(len(matrix)):
-        matrixSum(answerMatrix, matrixPower(matrix, i + 1))
+        answerMatrix = matrixSum(answerMatrix, matrixPower(matrix, i + 1))
 
     return binaryDisplay(answerMatrix)
 
@@ -442,6 +480,43 @@ def multiplyMatrixByElements(A, B):
 
 def strongConnectivityMartix(matrix):
     return multiplyMatrixByElements(matrix, transposeMatrix(matrix))
+
+
+def strongConnectivityComponents(matrix):
+    indeces = []
+    uniqueRows = []
+
+    for index, row in enumerate(matrix):
+        if (row not in uniqueRows):
+            uniqueRows.append(row)
+
+    for uniqueRow in uniqueRows:
+        groupIndeces = []
+        for index, row in enumerate(matrix):
+            if (row == uniqueRow):
+                groupIndeces.append(index)
+        indeces.append(groupIndeces)
+
+    return indeces
+
+def condensationGraph(matrix, groups):
+    newMatrix = [[0] * len(matrix) for i in range(len(matrix))]
+
+    for row in range(len(matrix)):
+        for column in range(len(matrix[0])):
+            if matrix[row][column] == 1:
+                fromVertex = row
+                toVertex = column
+                for index, group in enumerate(groups):
+                    if fromVertex in group: fromComponent = index
+                    if toVertex in group: toComponent = index
+                if (fromComponent != toComponent):
+                    newMatrix[fromComponent][toComponent] = 1
+
+    print("МАТРИЦЯ ГРАФА КОНДЕНСАЦІЇ:")
+
+    turtle.clear()
+    createGraph(len(groups), VERTEX_RADIUS, SQUARE_SIZE, BREAK_GAP, EXTRA_GAP, newMatrix, "dir")
 
 def newGraph():
     turtle.clear()
@@ -470,51 +545,25 @@ def newGraph():
     print("МАТРИЦЯ ДОСЯЖНОСТІ:")
     matrixReach = matrixReachability(dirMatrix)
     for row in matrixReach:
-        print(row)
+        print(f"\t{row}")
 
     print("МАТРИЦЯ СИЛЬНОЇ ЗВ'ЯЗНОСТІ:")
     matrixStrongConnectivity = strongConnectivityMartix(matrixReach)
+    for row in matrixStrongConnectivity:
+        print(f"\t{row}")
 
     print("ПЕРЕЛІК КОМПОНЕНТІВ СИЛЬНОЇ ЗВ'ЯЗНОСТІ:")
+    componentsStrongConnectivity = strongConnectivityComponents(matrixStrongConnectivity)
+    for group in componentsStrongConnectivity:
+        vertexList = [f"V{x+1}" for x in group]
+        print("\t{" + ", ".join(vertexList) + "}")
+
+    condensationGraphButton = Button(-250, 250, 100, 40, "Condensation Graph", lambda: condensationGraph(dirMatrix, componentsStrongConnectivity), 8)
+    condensationGraphButton.drawButton()
+    turtle.onscreenclick(condensationGraphButton.buttonClickHandler)
 
 
-class Button:
-    def __init__(self, x, y, width, height, label, color="white", fontSize=12):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.label = label
-        self.color = color
-        self.fontSize = fontSize
-
-    def drawButton(self):
-        up()
-        goto(self.x - self.width / 2, self.y - self.height / 2)
-        down()
-        turtle.fillcolor(self.color)
-        turtle.begin_fill()
-        for i in range(2):
-            turtle.forward(self.width)
-            turtle.left(90)
-            turtle.forward(self.height)
-            turtle.left(90)
-        turtle.end_fill()
-
-        up()
-        goto(self.x, self.y - self.fontSize/2)
-        write(self.label, align="center", font=("Arial", 12, "normal"))
-
-    def isButtonClicked(self, clickX, clickY):
-        return ((self.x - self.width / 2 <= clickX <= self.x + self.width / 2) and
-                (self.y - self.height / 2 <= clickY <= self.y + self.height / 2))
-
-    def buttonClickHandler(self, x, y):
-        if self.isButtonClicked(x, y):
-            newGraph()
-
-
-newGraphButton = Button(-250, 250, 100, 40, "New Graph")
+newGraphButton = Button(-250, 250, 100, 40, "New Graph", newGraph)
 newGraphButton.drawButton()
 turtle.onscreenclick(newGraphButton.buttonClickHandler)
 
