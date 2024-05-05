@@ -500,7 +500,7 @@ def strongConnectivityComponents(matrix):
     return indeces
 
 def condensationGraph(matrix, groups):
-    newMatrix = [[0] * len(matrix) for i in range(len(matrix))]
+    newMatrix = [[0] * len(groups) for i in range(len(groups))]
 
     for row in range(len(matrix)):
         for column in range(len(matrix[0])):
